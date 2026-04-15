@@ -1,0 +1,27 @@
+# Ignore build artifacts
+build/
+**/build/
+
+# Python cache and bytecode
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# User files and outputs
+*.pkl
+*.log
+*.db
+*.sqlite3
+*.png
+*.jpg
+*.jpeg
+*.gif
+
+# IDE files
+.vscode/
+.idea/
+
+# Virtual environments
+venv/
+.env/

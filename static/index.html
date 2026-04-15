@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blackjack RL AI</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #2c3e50;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+        .game-container {
+            background-color: #1a252f;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.5);
+            max-width: 600px;
+            width: 100%;
+        }
+        .section {
+            margin-bottom: 25px;
+            padding: 15px;
+            border-bottom: 1px solid #34495e;
+        }
+        .section:last-child {
+            border-bottom: none;
+        }
+        h2 { margin-top: 0; color: #3498db; }
+        .cards { font-size: 24px; font-weight: bold; margin: 10px 0; }
+        .controls { display: flex; gap: 10px; justify-content: center; }
+        button {
+            padding: 12px 24px;
+            font-size: 16px;
+            cursor: pointer;
+            border: none;
+            border-radius: 5px;
+            transition: 0.3s;
+            font-weight: bold;
+        }
+        .btn-hit { background-color: #e74c3c; color: white; }
+        .btn-hit:hover { background-color: #c0392b; }
+        .btn-stand { background-color: #27ae60; color: white; }
+        .btn-stand:hover { background-color: #219150; }
+        .btn-reset { background-color: #3498db; color: white; margin-top: 20px; width: 100%; }
+        button:disabled { background-color: #7f8c8d; cursor: not-allowed; }
+        
+        .ai-advice {
+            background-color: #2980b9;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            margin-top: 20px;
+        }
+        .q-values {
+            font-size: 12px;
+            color: #bdc3c7;
+            margin-top: 5px;
+        }
+        .result {
+            font-size: 24px;
+            text-align: center;
+            font-weight: bold;
+            margin: 20px 0;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .win { background-color: #27ae60; }
+        .lose { background-color: #c0392b; }
+        .draw { background-color: #f39c12; }
+    </style>
+</head>
+<body>
+    <h1>Blackjack RL AI</h1>
+    
+    <div class="game-container">
+        <div class="section">
+            <h2>Dealer (Kasa)</h2>
+            <div id="dealer-cards" class="cards">?</div>
+            <div>Toplam: <span id="dealer-sum">?</span></div>
+        </div>
+
+        <div class="section">
+            <h2>Sen (Oyuncu)</h2>
+            <div id="player-cards" class="cards">?</div>
+            <div>Toplam: <span id="player-sum">?</span> (Usable Ace: <span id="usable-ace">?</span>)</div>
+        </div>
+
+        <div id="game-result" class="result" style="display: none;"></div>
+
+        <div class="controls">
+            <button id="hit-btn" class="btn-hit" onclick="step(0)">Kart Çek (Hit)</button>
+            <button id="stand-btn" class="btn-stand" onclick="step(1)">Dur (Stand)</button>
+        </div>
+
+        <div class="ai-advice">
+            <strong>AI Önerisi:</strong> <span id="advice-text">Düşünüyor...</span>
+            <div id="q-values-text" class="q-values"></div>
+        </div>
+
+        <button class="btn-reset" onclick="reset()">Yeni Oyun Başlat</button>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:5000/api';
+
+        async function updateUI(data) {
+            document.getElementById('dealer-cards').textContent = data.dealer_cards.join(', ');
+            document.getElementById('dealer-sum').textContent = data.dealer_sum;
+            
+            document.getElementById('player-cards').textContent = data.player_cards.join(', ');
+            document.getElementById('player-sum').textContent = data.player_sum;
+            document.getElementById('usable-ace').textContent = data.usable_ace ? 'Evet' : 'Hayır';
+            
+            document.getElementById('advice-text').textContent = data.ai_advice;
+            document.getElementById('q-values-text').textContent = `Q-Hit: ${data.q_values.hit}, Q-Stand: ${data.q_values.stand}`;
+            
+            const resultDiv = document.getElementById('game-result');
+            const hitBtn = document.getElementById('hit-btn');
+            const standBtn = document.getElementById('stand-btn');
+
+            if (data.done) {
+                resultDiv.style.display = 'block';
+                hitBtn.disabled = true;
+                standBtn.disabled = true;
+
+                if (data.reward > 0) {
+                    resultDiv.textContent = data.reward === 1.5 ? "BLACKJACK! KAZANDIN!" : "TEBRİKLER! KAZANDIN!";
+                    resultDiv.className = "result win";
+                } else if (data.reward < 0) {
+                    resultDiv.textContent = "MAALESEF! KAYBETTİN!";
+                    resultDiv.className = "result lose";
+                } else {
+                    resultDiv.textContent = "BERABERE!";
+                    resultDiv.className = "result draw";
+                }
+            } else {
+                resultDiv.style.display = 'none';
+                hitBtn.disabled = false;
+                standBtn.disabled = false;
+            }
+        }
+
+        async function reset() {
+            const response = await fetch(`${API_URL}/reset`, { method: 'POST' });
+            const data = await response.json();
+            updateUI(data);
+        }
+
+        async function step(action) {
+            const response = await fetch(`${API_URL}/step`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action })
+            });
+            const data = await response.json();
+            updateUI(data);
+        }
+
+        // İlk oyun başlasın
+        reset();
+    </script>
+</body>
+</html>

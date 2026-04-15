@@ -1,37 +1,53 @@
-# Blackjack Monte Carlo Exploring Starts
+# Blackjack Pekiştirmeli Öğrenme (Reinforcement Learning) Projesi
 
-----
-## What is it?
+Bu proje, Blackjack (21) oyununu simüle eden bir ortam ve bu ortamda kendi kendine oynamayı öğrenen bir Q-Learning ajanını içerir. Mevcut yapı, klasik Monte Carlo ES yöntemine alternatif olarak modern bir Q-Learning yaklaşımı sunar.
 
-A program written in both Python and C++ for finding the optimal policy for a game of blackjack. Specifically, the rules defined for this variation of blackjack are as follows:
- - Infinite number of decks are used, thus counting cards does not have any impact.
- - Dealer stick for a value of 17 or higher.
- - Player can only hit or stick.
- - All values of 21 are equal.
+## Özellikler
 
-This was written to obtain a better understanding of the Monte Carlo approach for finding optimal policies in reinforcement learning as defined by the [Sutton and Barto Reinforcement Learning book](https://webdocs.cs.ualberta.ca/~sutton/book/the-book.html) second draft. This specific approach uses exploring starts with the state consisting of the following variables:
- - The player's current sum. This can be between 11 and 21.
- - The value of the card the dealer is showing. This can be between 1 and 10.
- - Whether or not the player currently has a usable ace.
+- **Modüler Yapı:** Ortam (`environment.py`), Ajan (`agent.py`) ve Ana Kontrol (`main.py`) olarak ayrılmıştır.
+- **Q-Learning Algoritması:** Epsilon-greedy stratejisi ve epsilon decay (keşif oranının zamanla azalması) mekanizması kullanır.
+- **İnteraktif Mod:** Kullanıcı oyun oynarken AI'dan gerçek zamanlı hamle önerisi (Hit/Stand) alabilir.
+- **Eğitim Modu:** Binlerce oyun üzerinden ajanı eğitme ve win rate (kazanma oranı) takibi.
+- **Görselleştirme:** Eğitim süreci ve öğrenilen politikanın (policy) grafiksel gösterimi.
 
- By generating these variables and an action from the generated state with equal probability and alternating between policy evaluation and improvement, eventually an optimal policy will be generated.
+## Dosya Yapısı
 
-----
-## How to run?
+- `environment.py`: Blackjack oyun kuralları ve state/action tanımları.
+- `agent.py`: Q-Learning ajanı, Q-table yönetimi ve model kaydetme/yükleme.
+- `main.py`: Eğitim, interaktif oyun ve görselleştirme fonksiyonlarını içeren ana giriş noktası.
+- `blackjack_agent.pkl`: Eğitilmiş modelin (Q-table) saklandığı dosya.
 
-There is the Python version and there is the C++ version. The python version exists in the `python` directory and can by run by simply running `python blackjack.py`. By default, it runs for 2 million iterations and takes about a minute. The C++ version exists in the `c++` folder, uses premake5, and can be configured for your build tools via a command such as `premake5 vs2015`. By default, it runs for 1 billion iterations and takes around 30 minutes to complete, although this can be changed via the constant variable. The C++ version is rather messy due it all being in one file and having to specify hash functions, etc.
+## Nasıl Çalıştırılır?
 
-----
-## Result
+### 1. Eğitim (Training)
+Ajanı eğitmek için aşağıdaki komutu kullanın:
+```bash
+python main.py --train --episodes 100000
+```
+Bu komut, ajanı 100,000 el boyunca eğitir ve eğitim sonunda `win_rate_graph.png` grafiğini oluşturur.
 
-I initially had performance issues with the Python version before I made some optimizations (such as incremental averaging). As a result, I decided to work on a C++ version which I then made multithreaded. Since states with a specified dealer card have no possible actions leading to a state with a different dealer card, all subsets of states with different dealer cards can be treated independently which allows for easy multithreading.
+### 2. AI Önerisi ile Oynamak (Human + AI)
+Eğitilmiş bir model ile kendiniz oynamak ve AI'dan tavsiye almak için:
+```bash
+python main.py --play
+```
+Her turda AI size mevcut Q değerlerine göre "KART ÇEK" veya "DUR" önerisi verecektir.
 
-Here is a possible result from the Python version (running for 2 million iterations):
+### 3. Politikayı Görselleştirmek
+AI'nın hangi durumda ne karar verdiğini (Hit/Stand) görmek için:
+```bash
+python main.py --plot
+```
 
-![Python With Usable Ace](https://github.com/sgodwincs/blackjack-monte-carlo-es/blob/master/py_with_usable_ace.png) ![Python Without Usable Ace](https://github.com/sgodwincs/blackjack-monte-carlo-es/blob/master/py_without_usable_ace.png)
+## Ödül Sistemi
+- **Kazanma:** +1
+- **Kaybetme:** -1
+- **Beraberlik:** 0
+- **Blackjack:** +1.5 (Opsiyonel olarak ödüllendirilir)
 
-And the C++ version (running for 1 billion iterations):
+## Gereksinimler
+- Python 3.x
+- NumPy
+- Matplotlib
 
-![C++ With Usable Ace](https://github.com/sgodwincs/blackjack-monte-carlo-es/blob/master/c++_with_usable_ace.png) ![C++ Without Usable Ace](https://github.com/sgodwincs/blackjack-monte-carlo-es/blob/master/c++_without_usable_ace.png)
-
-Forgot to label the graphs, but the X-axis is the dealer's showing card, the Y-axis is the player's current sum, red points are when you should hit, and finally blue points are when you should stick. The C++ version obviously generated the optimal policy because of more iterations, but the Python version is near optimal. Specifically, in some runs the Python version would find the optimal policy without usable aces, but it had a hard time finding the optimal policy with usable aces.
+Eğitim sırasında win rate takibi yapılarak ajanın gelişimi gözlemlenebilir. Genellikle 50,000 - 100,000 episode sonrası ajan optimal politikaya yakın bir performans sergilemeye başlar.
